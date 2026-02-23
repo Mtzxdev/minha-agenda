@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Minha Agenda</title>
-
 <style>
 body {
     margin: 0;
@@ -11,40 +10,38 @@ body {
     background: #1e1e1e;
     color: white;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     height: 100vh;
 }
 
-/* TOPO */
-header {
+#loginContainer {
     background: #2b2b2b;
-    padding: 10px;
+    padding: 30px;
     text-align: center;
-    font-size: 20px;
+    border-radius: 8px;
 }
 
-/* BARRA DO TÍTULO DA NOTA */
-.top-bar {
-    background: #252525;
+#loginContainer h1 {
+    margin-bottom: 20px;
+}
+
+input {
     padding: 8px;
-    display: flex;
-    gap: 10px;
-}
-
-.top-bar input {
-    flex: 1;
-    padding: 6px;
-    background: #3a3a3a;
-    color: white;
+    margin: 5px 0;
+    width: 200px;
     border: none;
     outline: none;
+    background: #3a3a3a;
+    color: white;
 }
 
 button {
-    padding: 6px 10px;
+    padding: 8px 12px;
+    margin: 5px;
     background: #444;
-    color: white;
     border: none;
+    color: white;
     cursor: pointer;
 }
 
@@ -52,13 +49,25 @@ button:hover {
     background: #666;
 }
 
-/* CONTAINER PRINCIPAL */
+#agendaContainer {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+}
+
+header {
+    background: #2b2b2b;
+    padding: 10px;
+    text-align: center;
+    font-size: 20px;
+}
+
 .main {
     flex: 1;
     display: flex;
 }
 
-/* LADO ESQUERDO */
+/* Sidebar e Editor estilo antigo */
 .sidebar {
     width: 250px;
     background: #2b2b2b;
@@ -76,7 +85,6 @@ button:hover {
     background: #555;
 }
 
-/* LADO DIREITO */
 .editor {
     flex: 1;
     display: flex;
@@ -93,14 +101,36 @@ textarea {
     resize: none;
     outline: none;
 }
+
+.top-bar {
+    background: #252525;
+    padding: 8px;
+    display: flex;
+    gap: 10px;
+}
+
+.top-bar input {
+    flex: 1;
+    padding: 6px;
+    background: #3a3a3a;
+    color: white;
+    border: none;
+    outline: none;
+}
 </style>
 </head>
-
 <body>
 
-<header>
-📒 Minha Agenda
-</header>
+<div id="loginContainer">
+    <h1>Minha Agenda</h1>
+    <input type="text" id="username" placeholder="Usuário"><br>
+    <input type="password" id="password" placeholder="Senha"><br>
+    <button onclick="login()">Logar</button>
+    <button onclick="register()">Cadastrar</button>
+</div>
+
+<div id="agendaContainer">
+<header>📒 Minha Agenda</header>
 
 <div class="top-bar">
     <input type="text" id="noteTitle" placeholder="Nome da nota...">
@@ -110,27 +140,56 @@ textarea {
 </div>
 
 <div class="main">
-
     <div class="sidebar">
         <div id="notesList"></div>
     </div>
-
     <div class="editor">
         <textarea id="editor" placeholder="Escreva sua anotação..."></textarea>
     </div>
-
+</div>
 </div>
 
 <script>
-let notes = JSON.parse(localStorage.getItem("notes")) || [];
-let currentIndex = null;
+let users = JSON.parse(localStorage.getItem("users")) || {};
+let currentUser = null;
 
+function register() {
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    if (!user || !pass) return alert("Preencha usuário e senha!");
+    if (users[user]) return alert("Usuário já existe!");
+    users[user] = { password: pass, notes: [] };
+    localStorage.setItem("users", JSON.stringify(users));
+    alert("Usuário cadastrado!");
+}
+
+function login() {
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    if (users[user] && users[user].password === pass) {
+        currentUser = user;
+        document.getElementById("loginContainer").style.display = "none";
+        document.getElementById("agendaContainer").style.display = "flex";
+        loadNotes();
+    } else {
+        alert("Usuário ou senha incorretos!");
+    }
+}
+
+/* AGENDA */
+let currentIndex = null;
 const editor = document.getElementById("editor");
 const notesList = document.getElementById("notesList");
 const noteTitle = document.getElementById("noteTitle");
 
+function loadNotes() {
+    if (!currentUser) return;
+    renderNotes();
+}
+
 function renderNotes() {
     notesList.innerHTML = "";
+    const notes = users[currentUser].notes;
     notes.forEach((note, index) => {
         const div = document.createElement("div");
         div.className = "note-item";
@@ -138,24 +197,26 @@ function renderNotes() {
         div.onclick = () => selectNote(index);
         notesList.appendChild(div);
     });
-    localStorage.setItem("notes", JSON.stringify(notes));
+    localStorage.setItem("users", JSON.stringify(users));
 }
 
 function newNote() {
-    currentIndex = null;
     editor.value = "";
     noteTitle.value = "";
+    currentIndex = null;
 }
 
 function selectNote(index) {
     currentIndex = index;
-    editor.value = notes[index].content;
-    noteTitle.value = notes[index].title;
+    const note = users[currentUser].notes[index];
+    editor.value = note.content;
+    noteTitle.value = note.title;
 }
 
 function saveNote() {
     const title = noteTitle.value.trim() || "Sem título";
     const content = editor.value;
+    const notes = users[currentUser].notes;
 
     if (currentIndex === null) {
         notes.push({ title, content });
@@ -169,16 +230,14 @@ function saveNote() {
 }
 
 function deleteNote() {
-    if (currentIndex !== null) {
-        notes.splice(currentIndex, 1);
-        currentIndex = null;
-        editor.value = "";
-        noteTitle.value = "";
-        renderNotes();
-    }
+    if (currentIndex === null) return;
+    users[currentUser].notes.splice(currentIndex, 1);
+    currentIndex = null;
+    editor.value = "";
+    noteTitle.value = "";
+    renderNotes();
 }
 
-renderNotes();
 </script>
 
 </body>
