@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Minha Agenda</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: monospace;
+    background: #1e1e1e;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* TOPO */
+header {
+    background: #2b2b2b;
+    padding: 10px;
+    text-align: center;
+    font-size: 20px;
+}
+
+/* BARRA DO TÍTULO DA NOTA */
+.top-bar {
+    background: #252525;
+    padding: 8px;
+    display: flex;
+    gap: 10px;
+}
+
+.top-bar input {
+    flex: 1;
+    padding: 6px;
+    background: #3a3a3a;
+    color: white;
+    border: none;
+    outline: none;
+}
+
+button {
+    padding: 6px 10px;
+    background: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #666;
+}
+
+/* CONTAINER PRINCIPAL */
+.main {
+    flex: 1;
+    display: flex;
+}
+
+/* LADO ESQUERDO */
+.sidebar {
+    width: 250px;
+    background: #2b2b2b;
+    padding: 10px;
+}
+
+.note-item {
+    background: #3a3a3a;
+    padding: 8px;
+    margin: 5px 0;
+    cursor: pointer;
+}
+
+.note-item:hover {
+    background: #555;
+}
+
+/* LADO DIREITO */
+.editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+textarea {
+    flex: 1;
+    background: #1e1e1e;
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 16px;
+    resize: none;
+    outline: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+📒 Minha Agenda
+</header>
+
+<div class="top-bar">
+    <input type="text" id="noteTitle" placeholder="Nome da nota...">
+    <button onclick="saveNote()">💾 Salvar</button>
+    <button onclick="newNote()">➕ Nova</button>
+    <button onclick="deleteNote()">🗑️ Excluir</button>
+</div>
+
+<div class="main">
+
+    <div class="sidebar">
+        <div id="notesList"></div>
+    </div>
+
+    <div class="editor">
+        <textarea id="editor" placeholder="Escreva sua anotação..."></textarea>
+    </div>
+
+</div>
+
+<script>
+let notes = JSON.parse(localStorage.getItem("notes")) || [];
+let currentIndex = null;
+
+const editor = document.getElementById("editor");
+const notesList = document.getElementById("notesList");
+const noteTitle = document.getElementById("noteTitle");
+
+function renderNotes() {
+    notesList.innerHTML = "";
+    notes.forEach((note, index) => {
+        const div = document.createElement("div");
+        div.className = "note-item";
+        div.textContent = note.title || "Sem título";
+        div.onclick = () => selectNote(index);
+        notesList.appendChild(div);
+    });
+    localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+function newNote() {
+    currentIndex = null;
+    editor.value = "";
+    noteTitle.value = "";
+}
+
+function selectNote(index) {
+    currentIndex = index;
+    editor.value = notes[index].content;
+    noteTitle.value = notes[index].title;
+}
+
+function saveNote() {
+    const title = noteTitle.value.trim() || "Sem título";
+    const content = editor.value;
+
+    if (currentIndex === null) {
+        notes.push({ title, content });
+        currentIndex = notes.length - 1;
+    } else {
+        notes[currentIndex] = { title, content };
+    }
+
+    renderNotes();
+    alert("Nota salva!");
+}
+
+function deleteNote() {
+    if (currentIndex !== null) {
+        notes.splice(currentIndex, 1);
+        currentIndex = null;
+        editor.value = "";
+        noteTitle.value = "";
+        renderNotes();
+    }
+}
+
+renderNotes();
+</script>
+
+</body>
+</html>
